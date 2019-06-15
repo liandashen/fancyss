@@ -1,12 +1,8 @@
 #!/bin/sh
 
-# shadowsocks script for HND router with kernel 4.1.27 merlin firmware
-# by sadog (sadoneli@gmail.com) from koolshare.cn
+# shadowsocks script for HND/AXHND router with kernel 4.1.27/4.1.51 merlin firmware
 
-eval `dbus export ss`
-source /koolshare/scripts/base.sh
-source helper.sh
-alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y年%m月%d日\ %X)】:'
+source /koolshare/scripts/ss_base.sh
 
 get_mode_name() {
 	case "$1" in
@@ -70,34 +66,23 @@ echo_version(){
 			ss_basic_v2ray_version="null"
 		fi
 	fi
-
-	if [ -z "$ss_basic_v2ray_date" ];then
-		ss_basic_v2ray_date_tmp=`/koolshare/bin/v2ray -version 2>/dev/null | head -n 1 | cut -d " " -f5`
-		if [ -n "$ss_basic_v2ray_date_tmp" ];then
-			ss_basic_v2ray_date="$ss_basic_v2ray_date_tmp"
-			dbus set ss_basic_v2ray_date="$ss_basic_v2ray_date_tmp"
-		else
-			ss_basic_v2ray_date="null"
-		fi
-	fi
 	echo ① 程序版本（插件版本：$SOFVERSION）：
 	echo -----------------------------------------------------------
 	echo "程序			版本		备注"
-	echo "ss-redir		3.1.3		2018年04月15日编译"
-	echo "ss-tunnel		3.1.3 		2018年04月15日编译"
-	echo "ss-local		3.1.3		2018年04月15日编译"
-	echo "obfs-local		0.0.5		2018年04月15日编译"
-	echo "ssrr-redir		3.5.2 		2017年12月05日编译"
-	echo "ssrr-tunnel		3.5.2 		2017年12月05日编译"
-	echo "ssrr-local		3.5.2 		2017年12月05日编译"
-	echo "haproxy			1.8.1 		2017年12月05日编译"
+	echo "ss-redir		3.2.5		2019年04月10日编译"
+	echo "ss-tunnel		3.2.5		2019年04月10日编译"
+	echo "ss-local		3.2.5		2019年04月10日编译"
+	echo "obfs-local		0.0.5		2018年11月25日编译"
+	echo "ssrr-redir		3.5.3 		2018年12月06日编译"
+	echo "ssrr-local		3.5.3 		2018年12月06日编译"
+	echo "haproxy			1.8.14 		2018年12月06日编译"
 	echo "dns2socks		V2.0 		2017年12月05日编译"
 	echo "cdns			1.0 		2017年12月09日编译"
 	echo "chinadns1		1.3.2 		2017年12月09日编译"
 	echo "chinadns2		2.0.0 		2017年12月09日编译"
-	echo "https_dns_proxy		bea6840		2018年04月15日编译"
+	echo "https_dns_proxy		758f913		2019年02月05日编译"
 	echo "client_linux_arm7	20180810	kcptun"
-	echo "v2ray			$ss_basic_v2ray_version		$ss_basic_v2ray_date"
+	echo "v2ray			$ss_basic_v2ray_version"
 	echo -----------------------------------------------------------
 }
 

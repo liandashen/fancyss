@@ -1,21 +1,23 @@
 #!/bin/sh
-export KSROOT=/koolshare
-source $KSROOT/scripts/base.sh
+
+# shadowsocks script for HND/AXHND router with kernel 4.1.27/4.1.51 merlin firmware
+
+source /koolshare/scripts/base.sh
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y年%m月%d日\ %X)】:'
 
 backup_conf(){
 	rm -rf /tmp/files
 	rm -rf /koolshare/webs/files
 	mkdir -p /tmp/files
-	ln -sf ln -sf /tmp/files /koolshare/webs/files
-	dbus list ss | grep -v "enable" | grep -v "ssid_" | sed 's/=/=\"/' | sed 's/$/\"/g'|sed 's/^/dbus set /' | sed '1 isource /koolshare/scripts/base.sh' |sed '1 i#!/bin/sh' > $KSROOT/webs/files/ssconf_backup.sh
+	ln -sf /tmp/files /koolshare/webs/files
+	dbus list ss | grep -v "enable" | grep -v "ssid_" | sed 's/=/=\"/' | sed 's/$/\"/g'|sed 's/^/dbus set /' | sed '1 isource /koolshare/scripts/base.sh' |sed '1 i#!/bin/sh' > /koolshare/webs/files/ssconf_backup.sh
 }
 
 backup_tar(){
 	rm -rf /tmp/files
 	rm -rf /koolshare/webs/files
 	mkdir -p /tmp/files
-	ln -sf ln -sf /tmp/files /koolshare/webs/files
+	ln -sf /tmp/files /koolshare/webs/files
 	echo_date "开始打包..."
 	cd /tmp
 	mkdir shadowsocks
@@ -38,8 +40,6 @@ backup_tar(){
 	cp /koolshare/bin/pdu $TARGET_FOLDER/bin/
 	cp /koolshare/bin/dns2socks $TARGET_FOLDER/bin/
 	cp /koolshare/bin/cdns $TARGET_FOLDER/bin/
-	#cp /koolshare/bin/dnscrypt-proxy $TARGET_FOLDER/bin/
-	#cp /koolshare/bin/Pcap_DNSProxy $TARGET_FOLDER/bin/
 	cp /koolshare/bin/chinadns $TARGET_FOLDER/bin/
 	cp /koolshare/bin/chinadns1 $TARGET_FOLDER/bin/
 	cp /koolshare/bin/resolveip $TARGET_FOLDER/bin/
@@ -51,15 +51,17 @@ backup_tar(){
 	cp /koolshare/bin/v2ray $TARGET_FOLDER/bin/
 	cp /koolshare/bin/v2ctl $TARGET_FOLDER/bin/
 	cp /koolshare/bin/https_dns_proxy $TARGET_FOLDER/bin/
+	cp /koolshare/bin/httping $TARGET_FOLDER/bin/
 	cp /koolshare/bin/haveged $TARGET_FOLDER/bin/
 	cp /koolshare/bin/dnsmasq $TARGET_FOLDER/bin/
 	cp /koolshare/webs/Module_shadowsocks*.asp $TARGET_FOLDER/webs/
+	cp /koolshare/res/accountadd.png $TARGET_FOLDER/res/
+	cp /koolshare/res/accountdelete.png $TARGET_FOLDER/res/
+	cp /koolshare/res/accountedit.png $TARGET_FOLDER/res/
 	cp /koolshare/res/icon-shadowsocks.png $TARGET_FOLDER/res/
 	cp /koolshare/res/ss-menu.js $TARGET_FOLDER/res/
-	cp /koolshare/res/all.png $TARGET_FOLDER/res/
-	cp /koolshare/res/gfw.png $TARGET_FOLDER/res/
-	cp /koolshare/res/chn.png $TARGET_FOLDER/res/
-	cp /koolshare/res/game.png $TARGET_FOLDER/res/
+	cp /koolshare/res/tablednd.js $TARGET_FOLDER/res/
+	cp /koolshare/res/qrcode.js $TARGET_FOLDER/res/
 	cp /koolshare/res/shadowsocks.css $TARGET_FOLDER/res/
 	cp -r /koolshare/ss $TARGET_FOLDER/
 	rm -rf $TARGET_FOLDER/ss/*.json
@@ -232,6 +234,42 @@ restore_now(){
 	echo_date 完成！
 }
 
+reomve_ping(){
+	# flush previous ping value in the table
+	pings=`dbus list ssconf_basic_ping | sort -n -t "_" -k 4|cut -d "=" -f 1`
+	if [ -n "$pings" ];then
+		for ping in $pings
+		do
+			echo "remove $ping"
+			dbus remove "$ping"
+		done
+	fi
+}
+
+download_ssf(){
+	rm -rf /tmp/files
+	rm -rf /koolshare/webs/files
+	mkdir -p /tmp/files
+	ln -sf /tmp/files /koolshare/webs/files
+	if [ -f "/tmp/upload/ssf_status.txt" ];then
+		cp -rf /tmp/upload/ssf_status.txt /tmp/files/ssf_status.txt
+	else
+		echo "日志为空" > /tmp/files/ssf_status.txt
+	fi
+}
+
+download_ssc(){
+	rm -rf /tmp/files
+	rm -rf /koolshare/webs/files
+	mkdir -p /tmp/files
+	ln -sf /tmp/files /koolshare/webs/files
+	if [ -f "/tmp/upload/ssc_status.txt" ];then
+		cp -rf /tmp/upload/ssc_status.txt /tmp/files/ssc_status.txt
+	else
+		echo "日志为空" > /tmp/files/ssc_status.txt
+	fi
+}
+
 case $2 in
 1)
 	echo " " > /tmp/upload/ss_log.txt
@@ -258,5 +296,18 @@ case $2 in
 	remove_silent >> /tmp/upload/ss_log.txt
 	restore_now >> /tmp/upload/ss_log.txt
 	echo XU6J03M6 >> /tmp/upload/ss_log.txt
+	;;
+5)
+	reomve_ping
+	;;
+6)
+	echo " " > /tmp/upload/ss_log.txt
+	download_ssf
+	http_response "$1"
+	;;
+7)
+	echo " " > /tmp/upload/ss_log.txt
+	download_ssc
+	http_response "$1"
 	;;
 esac

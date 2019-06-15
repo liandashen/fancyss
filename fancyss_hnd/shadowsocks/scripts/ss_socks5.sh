@@ -1,6 +1,9 @@
 #!/bin/sh
-eval `dbus export ss`
+
+# shadowsocks script for HND/AXHND router with kernel 4.1.27/4.1.51 merlin firmware
+
 source /koolshare/scripts/base.sh
+eval $(dbus export ss_)
 alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y年%m月%d日\ %X)】:'
 
 kill_socks5(){

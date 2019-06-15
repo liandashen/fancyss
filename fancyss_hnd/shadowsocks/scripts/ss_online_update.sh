@@ -1,53 +1,48 @@
 #!/bin/sh
 
-# shadowsocks script for HND router with kernel 4.1.27 merlin firmware
-# by sadog (sadoneli@gmail.com) from koolshare.cn
+# shadowsocks script for HND/AXHND router with kernel 4.1.27/4.1.51 merlin firmware
 
-export KSROOT=/koolshare
-source $KSROOT/scripts/base.sh
-alias echo_date='echo 【$(TZ=UTC-8 date -R +%Y年%m月%d日\ %X)】:'
-eval `dbus export ss`
+source /koolshare/scripts/ss_base.sh
 LOCK_FILE=/tmp/online_update.lock
 CONFIG_FILE=/koolshare/ss/ss.json
+BACKUP_FILE_TMP=/tmp/ss_conf_tmp.sh
+BACKUP_FILE=/tmp/ss_conf.sh
+
 DEL_SUBSCRIBE=0
 SOCKS_FLAG=0
 
-# ==============================
-# ssconf_basic_ping_
-# ssconf_basic_webtest_
-# ssconf_basic_node_
-# ssconf_basic_koolgame_udp_
-# ssconf_basic_method_
-# ssconf_basic_mode_
-# ssconf_basic_name_
-# ssconf_basic_password_
-# ssconf_basic_port_
-# ssconf_basic_rss_obfs_
-# ssconf_basic_rss_obfs_param_
-# ssconf_basic_rss_protocol_
-# ssconf_basic_rss_protocol_param_
-# ssconf_basic_server_
-# ssconf_basic_ss_obfs_
-# ssconf_basic_ss_obfs_host_
-# ssconf_basic_use_kcp_
-# ssconf_basic_use_lb_
-# ssconf_basic_lbmode_
-# ssconf_basic_weight_
-# ssconf_basic_v2ray_use_json_
-# ssconf_basic_v2ray_uuid_
-# ssconf_basic_v2ray_alterid_
-# ssconf_basic_v2ray_security_
-# ssconf_basic_v2ray_network_
-# ssconf_basic_v2ray_headtype_tcp_
-# ssconf_basic_v2ray_headtype_kcp_
-# ssconf_basic_v2ray_network_path_
-# ssconf_basic_v2ray_network_host_
-# ssconf_basic_v2ray_network_security_
-# ssconf_basic_v2ray_mux_enable_
-# ssconf_basic_v2ray_mux_concurrency_
-# ssconf_basic_v2ray_json_
-# ssconf_basic_type_
-# ==============================
+PREFIX="ssconf_basic_name_
+		ssconf_basic_server_
+		ssconf_basic_mode_
+		ssconf_basic_method_
+		ssconf_basic_password_
+		ssconf_basic_port_
+		ssconf_basic_ss_obfs_
+		ssconf_basic_ss_obfs_host_
+		ssconf_basic_rss_obfs_
+		ssconf_basic_rss_obfs_param_
+		ssconf_basic_rss_protocol_
+		ssconf_basic_rss_protocol_param_
+		ssconf_basic_koolgame_udp_
+		ssconf_basic_use_kcp_
+		ssconf_basic_use_lb_
+		ssconf_basic_lbmode_
+		ssconf_basic_weight_
+		ssconf_basic_group_
+		ssconf_basic_v2ray_use_json_
+		ssconf_basic_v2ray_uuid_
+		ssconf_basic_v2ray_alterid_
+		ssconf_basic_v2ray_security_
+		ssconf_basic_v2ray_network_
+		ssconf_basic_v2ray_headtype_tcp_
+		ssconf_basic_v2ray_headtype_kcp_
+		ssconf_basic_v2ray_network_path_
+		ssconf_basic_v2ray_network_host_
+		ssconf_basic_v2ray_network_security_
+		ssconf_basic_v2ray_mux_enable_
+		ssconf_basic_v2ray_mux_concurrency_
+		ssconf_basic_v2ray_json_
+		ssconf_basic_type_"
 
 set_lock(){
 	exec 233>"$LOCK_FILE"
@@ -70,74 +65,44 @@ prepare(){
 		echo_date "节点顺序正确，无需调整!"
 		return 0
 	fi 
+	# -----------------
 	# 1 提取干净的节点配置，并重新排序
 	echo_date 备份shadowsocks节点信息...
 	echo_date 如果节点数量过多，此处可能需要等待较长时间，请耐心等待...
-	rm -rf /tmp/ss_conf.sh
-	touch /tmp/ss_conf.sh
-	chmod +x /tmp/ss_conf.sh
-	echo "#!/bin/sh" >> /tmp/ss_conf.sh
-	valid_nus=`dbus list ssconf_basic_|grep _name_ | cut -d "=" -f1|cut -d "_" -f4|sort -n`
-	q=1
-	for nu in $valid_nus
+	rm -rf $BACKUP_FILE_TMP
+	rm -rf $BACKUP_FILE
+	local i=1
+	export -p | grep ssconf_basic_name_ | awk -F"=" '{print $1}' | awk -F"_" '{print $NF}' | sort -n | while read nu
 	do
-		[ -n "$(dbus get ssconf_basic_koolgame_udp_$nu)" ] && echo dbus set ssconf_basic_koolgame_udp_$q=$(dbus get ssconf_basic_koolgame_udp_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_method_$nu)" ] && echo dbus set ssconf_basic_method_$q=$(dbus get ssconf_basic_method_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_mode_$nu)" ] && echo dbus set ssconf_basic_mode_$q=$(dbus get ssconf_basic_mode_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_name_$nu)" ] && echo dbus set ssconf_basic_name_$q=$(dbus get ssconf_basic_name_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_password_$nu)" ] && echo dbus set ssconf_basic_password_$q=$(dbus get ssconf_basic_password_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_port_$nu)" ] && echo dbus set ssconf_basic_port_$q=$(dbus get ssconf_basic_port_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_rss_obfs_$nu)" ] && echo dbus set ssconf_basic_rss_obfs_$q=$(dbus get ssconf_basic_rss_obfs_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_rss_obfs_param_$nu)" ] && echo dbus set ssconf_basic_rss_obfs_param_$q=$(dbus get ssconf_basic_rss_obfs_param_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_rss_protocol_$nu)" ] && echo dbus set ssconf_basic_rss_protocol_$q=$(dbus get ssconf_basic_rss_protocol_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_rss_protocol_param_$nu)" ] && echo dbus set ssconf_basic_rss_protocol_param_$q=$(dbus get ssconf_basic_rss_protocol_param_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_server_$nu)" ] && echo dbus set ssconf_basic_server_$q=$(dbus get ssconf_basic_server_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_ss_obfs_$nu)" ] && echo dbus set ssconf_basic_ss_obfs_$q=$(dbus get ssconf_basic_ss_obfs_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_ss_obfs_host_$nu)" ] && echo dbus set ssconf_basic_ss_obfs_host_$q=$(dbus get ssconf_basic_ss_obfs_host_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_use_kcp_$nu)" ] && echo dbus set ssconf_basic_use_kcp_$q=$(dbus get ssconf_basic_use_kcp_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_use_lb_$nu)" ] && echo dbus set ssconf_basic_use_lb_$q=$(dbus get ssconf_basic_use_lb_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_lbmode_$nu)" ] && echo dbus set ssconf_basic_lbmode_$q=$(dbus get ssconf_basic_lbmode_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_weight_$nu)" ] && echo dbus set ssconf_basic_weight_$q=$(dbus get ssconf_basic_weight_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_group_$nu)" ] && echo dbus set ssconf_basic_group_$q=$(dbus get ssconf_basic_group_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_use_json_$nu)" ] && echo dbus set ssconf_basic_v2ray_use_json_$q=$(dbus get ssconf_basic_v2ray_use_json_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_uuid_$nu)" ] && echo dbus set ssconf_basic_v2ray_uuid_$q=$(dbus get ssconf_basic_v2ray_uuid_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_alterid_$nu)" ] && echo dbus set ssconf_basic_v2ray_alterid_$q=$(dbus get ssconf_basic_v2ray_alterid_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_security_$nu)" ] && echo dbus set ssconf_basic_v2ray_security_$q=$(dbus get ssconf_basic_v2ray_security_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_network_$nu)" ] && echo dbus set ssconf_basic_v2ray_network_$q=$(dbus get ssconf_basic_v2ray_network_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_headtype_tcp_$nu)" ] && echo dbus set ssconf_basic_v2ray_headtype_tcp_$q=$(dbus get ssconf_basic_v2ray_headtype_tcp_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_headtype_kcp_$nu)" ] && echo dbus set ssconf_basic_v2ray_headtype_kcp_$q=$(dbus get ssconf_basic_v2ray_headtype_kcp_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_network_path_$nu)" ] && echo dbus set ssconf_basic_v2ray_network_path_$q=$(dbus get ssconf_basic_v2ray_network_path_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_network_host_$nu)" ] && echo dbus set ssconf_basic_v2ray_network_host_$q=$(dbus get ssconf_basic_v2ray_network_host_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_network_security_$nu)" ] && echo dbus set ssconf_basic_v2ray_network_security_$q=$(dbus get ssconf_basic_v2ray_network_security_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_mux_enable_$nu)" ] && echo dbus set ssconf_basic_v2ray_mux_enable_$q=$(dbus get ssconf_basic_v2ray_mux_enable_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_mux_concurrency_$nu)" ] && echo dbus set ssconf_basic_v2ray_mux_concurrency_$q=$(dbus get ssconf_basic_v2ray_mux_concurrency_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_v2ray_json_$nu)" ] && echo dbus set ssconf_basic_v2ray_json_$q=$(dbus get ssconf_basic_v2ray_json_$nu) >> /tmp/ss_conf.sh
-		[ -n "$(dbus get ssconf_basic_type_$nu)" ] && echo dbus set ssconf_basic_type_$q=$(dbus get ssconf_basic_type_$nu) >> /tmp/ss_conf.sh
-		
-		echo "#------------------------" >> /tmp/ss_conf.sh
+		local items=$PREFIX
+		for item in $items
+		do
+		{
+			local tmp=$(eval echo \$$item$nu)
+			echo "export $item$i=\"$tmp\"" >> $BACKUP_FILE_TMP
+		} &
+		done
 		if [ "$nu" == "$ssconf_basic_node" ];then
-			echo dbus set ssconf_basic_node=$q >> /tmp/ss_conf.sh
+			echo "export ssconf_basic_node=\"$i\"" >> $BACKUP_FILE_TMP
 		fi
-		let q+=1
+		if [ -n "$ss_failover_s4_3" && "$nu" == "$ss_failover_s4_3" ];then
+			echo "export ss_failover_s4_3=\"$i\"" >> $BACKUP_FILE_TMP
+		fi
+		if [ -n "$ss_basic_udp_node" && "$nu" == "$ss_basic_udp_node" ];then
+			echo "export ss_basic_udp_node=\"$i\"" >> $BACKUP_FILE_TMP
+		fi
+		let i+=1
 	done
-	#echo $q
+	cat $BACKUP_FILE_TMP|awk -F"=" '{print $0"|"$1}' | awk -F"_" '{print $NF"|"$0}' | sort -t "|" -nk1,1 | awk -F"|" '{print $2}' | sed '1 i\#------------------------' | sed '1 isource /koolshare/scripts/base.sh' | sed '1 i#!/bin/sh' | sed '/ssconf_basic_weight_/a\#------------------------' > $BACKUP_FILE
+	echo "dbus save ssconf" >> $BACKUP_FILE
+	chmod +x $BACKUP_FILE
+	cp $BACKUP_FILE /koolshare/configs/ss_conf.sh
+	echo_date 备份完毕...
 	# -----------------
-	# 2 清除已有的ss节点配置
-	echo_date 一些必要的检查工作...
-	confs=`dbus list ssconf_basic_ | cut -d "=" -f 1`
-	for conf in $confs
-	do
-		#echo_date 移除$conf
-		dbus remove $conf
-	done
-	# -----------------
-	# 3 应用之前提取的干净的ss配置
+	# 2 应用之前提取的干净的ss配置
 	echo_date 检查完毕！节点信息备份在/koolshare/configs/ss_conf.sh
-	cat /tmp/ss_conf.sh | sed 's/=/=\"/' | sed 's/$/\"/g' > /koolshare/configs/ss_conf.sh
 	sh /koolshare/configs/ss_conf.sh
-	# ==============================
 }
-
 
 decode_url_link(){
 	local link=$1
@@ -153,7 +118,7 @@ decode_url_link(){
 }
 
 add_ssr_servers(){
-	sleep 1
+	usleep 100000
 	ssrindex=$(($(dbus list ssconf_basic_|grep _name_ | cut -d "=" -f1|cut -d "_" -f4|sort -rn|head -n1)+1))
 	dbus set ssconf_basic_name_$ssrindex=$remarks
 	[ -z "$1" ] && dbus set ssconf_basic_group_$ssrindex=$group
@@ -186,14 +151,14 @@ add_ss_servers(){
 get_remote_config(){
 	decode_link="$1"
 	action="$2"
-	server=$(echo "$decode_link" |awk -F':' '{print $1}')
-	server_port=$(echo "$decode_link" |awk -F':' '{print $2}')
-	protocol=$(echo "$decode_link" |awk -F':' '{print $3}')
+	server=$(echo "$decode_link"|awk -F':' '{print $1}'|sed 's/\s//g')
+	server_port=$(echo "$decode_link"|awk -F':' '{print $2}')
+	protocol=$(echo "$decode_link"|awk -F':' '{print $3}')
 	encrypt_method=$(echo "$decode_link" |awk -F':' '{print $4}')
-	obfs=$(echo "$decode_link" |awk -F':' '{print $5}'|sed 's/_compatible//g')
+	obfs=$(echo "$decode_link"|awk -F':' '{print $5}'|sed 's/_compatible//g')
 	
 	password=$(decode_url_link $(echo "$decode_link" |awk -F':' '{print $6}'|awk -F'/' '{print $1}'))
-	password=`echo $password|base64_encode`
+	password=`echo $password|base64_encode|sed 's/\s//g'`
 	
 	obfsparam_temp=$(echo "$decode_link" |awk -F':' '{print $6}'|grep -Eo "obfsparam.+"|sed 's/obfsparam=//g'|awk -F'&' '{print $1}')
 	[ -n "$obfsparam_temp" ] && obfsparam=$(decode_url_link $obfsparam_temp) || obfsparam=''
@@ -236,7 +201,11 @@ get_remote_config(){
 	#echo obfsparam: $obfsparam
 	#echo ------
 	echo "$group" >> /tmp/all_group_info.txt
-	[ -n "$group" ] && return 0 || return 1
+	if [ -n "$group" ] && [ -n "$server" ] && [ -n "$server_port" ] && [ -n "$password" ] && [ -n "$protocol" ] && [ -n "$obfs" ] && [ -n "$encrypt_method" ];then
+		return 0
+	else
+		return 1
+	fi
 }
 
 update_config(){
@@ -249,8 +218,21 @@ update_config(){
 		[ "$ssr_subscribe_obfspara" == "2" ] && dbus set ssconf_basic_rss_obfs_param_$ssrindex="$ssr_subscribe_obfspara_val"
 		let addnum+=1
 	else
-		# 如果在本地的订阅节点中没找到该节点，检测下配置是否更改，如果更改，则更新配置
-		index=$(cat /tmp/all_localservers| grep $group_base64 | grep $server_base64 |awk '{print $3}'|head -n1)
+		# 如果在本地的订阅节点中找到该节点，检测下配置是否更改，如果更改，则更新配置
+		index_line=$(cat /tmp/all_localservers| grep $group_base64 | grep $server_base64 |awk '{print $3}'|wc -l)
+		if [ "$index_line" == "1" ];then
+			local index=$(cat /tmp/all_localservers| grep $group_base64 | grep $server_base64 |awk '{print $3}'|sed -n "$index_line p")
+		else
+			# 如果有些机场有域名重复的节点，如一些用于流量提示和过期日期提醒的假节点，把同名节点序号写进文件后依次去取节点号
+			local tmp_file=$(echo $server_base64|sed 's/\=//g')
+			if [ ! -f /tmp/multi_${tmp_file}.txt ] || [ $(cat /tmp/multi_${tmp_file}.txt |wc -l) == 0 ];then
+				# 节点的base64值，去掉"="后，作为文件名写入/tmp，后面遇到该节点（server值相同的节点）就能从里面取值啦
+				cat /tmp/all_localservers| grep $group_base64 | grep $server_base64 |awk '{print $3}' > /tmp/multi_${tmp_file}.txt
+			fi
+			local index=$(cat /tmp/multi_${tmp_file}.txt|sed -n '1 p')
+			sed -i '1d' /tmp/multi_${tmp_file}.txt
+		fi
+		
 		local_remarks=$(dbus get ssconf_basic_name_$index)
 		local_server_port=$(dbus get ssconf_basic_port_$index)
 		local_protocol=$(dbus get ssconf_basic_rss_protocol_$index)
@@ -266,7 +248,7 @@ update_config(){
 		[ "$ssr_subscribe_obfspara" == "1" ] && dbus set ssconf_basic_rss_obfs_param_$index="$obfsparam"
 		[ "$ssr_subscribe_obfspara" == "2" ] && dbus set ssconf_basic_rss_obfs_param_$index="$ssr_subscribe_obfspara_val"
 		dbus set ssconf_basic_mode_$index="$ssr_subscribe_mode"
-		[ "$local_remarks" != "$remarks" ] && dbus set ssconf_basic_name_$index=$remarks
+		[ "$local_remarks" != "$remarks" ] && dbus set ssconf_basic_name_$index=$remarks && let i+=1
 		[ "$local_server_port" != "$server_port" ] && dbus set ssconf_basic_port_$index=$server_port && let i+=1
 		[ "$local_protocol" != "$protocol" ] && dbus set ssconf_basic_rss_protocol_$index=$protocol && let i+=1
 		[ "$local_protocol_param"x != "$protoparam"x ] && dbus set ssconf_basic_rss_protocol_param_$index=$protoparam && let i+=1
@@ -284,24 +266,56 @@ update_config(){
 get_v2ray_remote_config(){
 	decode_link="$1"
 	v2ray_group="$2"
+	v2ray_v=$(echo "$decode_link" | jq -r .v)
+	v2ray_ps=$(echo "$decode_link" | jq -r .ps | sed 's/[ \t]*//g')
+	v2ray_add=$(echo "$decode_link" | jq -r .add | sed 's/[ \t]*//g')
+	v2ray_port=$(echo "$decode_link" | jq -r .port | sed 's/[ \t]*//g')
+	v2ray_id=$(echo "$decode_link" | jq -r .id | sed 's/[ \t]*//g')
+	v2ray_aid=$(echo "$decode_link" | jq -r .aid | sed 's/[ \t]*//g')
+	v2ray_net=$(echo "$decode_link" | jq -r .net)
+	v2ray_type=$(echo "$decode_link" | jq -r .type)
+	v2ray_tls_tmp=$(echo "$decode_link" | jq -r .tls)
+	[ "$v2ray_tls_tmp"x == "tls"x ] && v2ray_tls="tls" || v2ray_tls="none"
 	
-	v2ray_v=$(echo "$decode_link" |jq -r .v)
-	v2ray_ps=$(echo "$decode_link" |jq -r .ps)
-	v2ray_add=$(echo "$decode_link" |jq -r .add)
-	v2ray_port=$(echo "$decode_link" |jq -r .port)
-	v2ray_id=$(echo "$decode_link" |jq -r .id)
-	v2ray_aid=$(echo "$decode_link" |jq -r .aid)
-	v2ray_net=$(echo "$decode_link" |jq -r .net)
-	v2ray_type=$(echo "$decode_link" |jq -r .type)
-	v2ray_path=$(echo "$decode_link" |jq -r .path)
-	v2ray_host=$(echo "$decode_link" |jq -r .host)
-	v2ray_tls_tmp=$(echo "$decode_link" |jq -r .tls)
-	[ -n "$v2ray_tls_tmp" ] && v2ray_tls="tls" || v2ray_tls="none"
+	if [ "$v2ray_v" == "2" ];then
+		#echo_date "new format"
+		v2ray_path=$(echo "$decode_link" |jq -r .path)
+		v2ray_host=$(echo "$decode_link" |jq -r .host)
+	else
+		#echo_date "old format"
+		case $v2ray_net in
+		tcp)
+			v2ray_host=$(echo "$decode_link" |jq -r .host)
+			v2ray_path=""
+			;;
+		kcp)
+			v2ray_host=""
+			v2ray_path=""
+			;;
+		ws)
+			v2ray_host_tmp=$(echo "$decode_link" |jq -r .host)
+			if [ -n "$v2ray_host_tmp" ];then
+				format_ws=`echo $v2ray_host_tmp|grep -E ";"`
+				if [ -n "$format_ws" ];then
+					v2ray_host=`echo $v2ray_host_tmp|cut -d ";" -f1`
+					v2ray_path=`echo $v2ray_host_tmp|cut -d ";" -f1`
+				else
+					v2ray_host=""
+					v2ray_path=$v2ray_host
+				fi
+			fi
+			;;
+		h2)
+			v2ray_host=""
+			v2ray_path=$(echo "$decode_link" |jq -r .path)
+			;;
+		esac
+	fi
 
 	#把全部服务器节点编码后写入文件 /usr/share/shadowsocks/serverconfig/all_onlineservers
 	[ -n "$v2ray_group" ] && group_base64=`echo $v2ray_group | base64_encode | sed 's/ -//g'`
 	[ -n "$v2ray_add" ] && server_base64=`echo $v2ray_add | base64_encode | sed 's/ -//g'`	
-	[ -n "$v2ray_group" ] && [ -n "$v2ray_ps" ] && echo $server_base64 $group_base64 >> /tmp/all_onlineservers
+	[ -n "$v2ray_group" ] && [ -n "$v2ray_add" ] && echo $server_base64 $group_base64 >> /tmp/all_onlineservers
 
 	#echo ------
 	#echo v2ray_v: $v2ray_v
@@ -315,50 +329,43 @@ get_v2ray_remote_config(){
 	#echo v2ray_path: $v2ray_path
 	#echo v2ray_tls: $v2ray_tls
 	#echo ------
-	[ "$v2ray_v" == "2" ] && return 0 || return 1
+	
+	[ -z "$v2ray_ps" -o -z "$v2ray_add" -o -z "$v2ray_port" -o -z "$v2ray_id" -o -z "$v2ray_aid" -o -z "$v2ray_net" -o -z "$v2ray_type" ] && return 1 || return 0
 }
 
 add_v2ray_servers(){
-	sleep 1
+	usleep 100000
 	v2rayindex=$(($(dbus list ssconf_basic_|grep _name_ | cut -d "=" -f1|cut -d "_" -f4|sort -rn|head -n1)+1))
-	if [ "$v2ray_v" == "2" ];then
-		# new format
-		[ -z "$1" ] && dbus set ssconf_basic_group_$v2rayindex=$v2ray_group
-		dbus set ssconf_basic_type_$v2rayindex=3
-		dbus set ssconf_basic_v2ray_mux_enable_$v2rayindex=0
-		dbus set ssconf_basic_v2ray_use_json_$v2rayindex=0
-		dbus set ssconf_basic_v2ray_security_$v2rayindex="auto"
-		dbus set ssconf_basic_mode_$v2rayindex=$ssr_subscribe_mode
-		dbus set ssconf_basic_name_$v2rayindex=$v2ray_ps
-		dbus set ssconf_basic_port_$v2rayindex=$v2ray_port
-		dbus set ssconf_basic_server_$v2rayindex=$v2ray_add
-		dbus set ssconf_basic_v2ray_uuid_$v2rayindex=$v2ray_id
-		dbus set ssconf_basic_v2ray_alterid_$v2rayindex=$v2ray_aid
-		dbus set ssconf_basic_v2ray_network_security_$v2rayindex=$v2ray_tls
-		dbus set ssconf_basic_v2ray_network_$v2rayindex=$v2ray_net
-		case $v2ray_net in
-		tcp)
-			# tcp协议设置【 tcp伪装类型 (type)】和【伪装域名 (host)】
-			dbus set ssconf_basic_v2ray_headtype_tcp_$v2rayindex=$v2ray_type
-			[ -n "$v2ray_host" ] && dbus set ssconf_basic_v2ray_network_host_$v2rayindex=$v2ray_host
-			;;
-		kcp)
-			# kcp协议设置【 kcp伪装类型 (type)】
-			dbus set ssconf_basic_v2ray_headtype_kcp_$v2rayindex=$v2ray_type
-			;;
-		ws|h2)
-			# ws/h2协议设置【 伪装域名 (host))】和【路径 (path)】
-			[ -n "$v2ray_host" ] && dbus set ssconf_basic_v2ray_network_host_$v2rayindex=$v2ray_host
-			[ -n "$v2ray_path" ] && dbus set ssconf_basic_v2ray_network_path_$v2rayindex=$v2ray_path
-			;;
-		esac
-		
-		echo_date v2ray节点：新增加 【$v2ray_ps】 到节点列表第 $v2rayindex 位。
-		
-	#elif [ "$v2ray_v"x == "null"x ];then
-	else
-		echo_date 检测到旧的v2ray配置！暂不支持旧的v2ray配置订阅！跳过！
-	fi
+	[ -z "$1" ] && dbus set ssconf_basic_group_$v2rayindex=$v2ray_group
+	dbus set ssconf_basic_type_$v2rayindex=3
+	dbus set ssconf_basic_v2ray_mux_enable_$v2rayindex=0
+	dbus set ssconf_basic_v2ray_use_json_$v2rayindex=0
+	dbus set ssconf_basic_v2ray_security_$v2rayindex="auto"
+	dbus set ssconf_basic_mode_$v2rayindex=$ssr_subscribe_mode
+	dbus set ssconf_basic_name_$v2rayindex=$v2ray_ps
+	dbus set ssconf_basic_port_$v2rayindex=$v2ray_port
+	dbus set ssconf_basic_server_$v2rayindex=$v2ray_add
+	dbus set ssconf_basic_v2ray_uuid_$v2rayindex=$v2ray_id
+	dbus set ssconf_basic_v2ray_alterid_$v2rayindex=$v2ray_aid
+	dbus set ssconf_basic_v2ray_network_security_$v2rayindex=$v2ray_tls
+	dbus set ssconf_basic_v2ray_network_$v2rayindex=$v2ray_net
+	case $v2ray_net in
+	tcp)
+		# tcp协议设置【 tcp伪装类型 (type)】和【伪装域名 (host)】
+		dbus set ssconf_basic_v2ray_headtype_tcp_$v2rayindex=$v2ray_type
+		[ -n "$v2ray_host" ] && dbus set ssconf_basic_v2ray_network_host_$v2rayindex=$v2ray_host
+		;;
+	kcp)
+		# kcp协议设置【 kcp伪装类型 (type)】
+		dbus set ssconf_basic_v2ray_headtype_kcp_$v2rayindex=$v2ray_type
+		;;
+	ws|h2)
+		# ws/h2协议设置【 伪装域名 (host))】和【路径 (path)】
+		[ -n "$v2ray_host" ] && dbus set ssconf_basic_v2ray_network_host_$v2rayindex=$v2ray_host
+		[ -n "$v2ray_path" ] && dbus set ssconf_basic_v2ray_network_path_$v2rayindex=$v2ray_path
+		;;
+	esac
+	echo_date v2ray节点：新增加 【$v2ray_ps】 到节点列表第 $v2rayindex 位。
 }
 
 update_v2ray_config(){
@@ -515,10 +522,16 @@ remove_node_gap(){
 				[ -n "$(dbus get ssconf_basic_v2ray_mux_concurrency_$nu)" ] && dbus set ssconf_basic_v2ray_mux_concurrency_"$y"="$(dbus get ssconf_basic_v2ray_mux_concurrency_$nu)" && dbus remove ssconf_basic_v2ray_mux_concurrency_$nu
 				[ -n "$(dbus get ssconf_basic_v2ray_json_$nu)" ] && dbus set ssconf_basic_v2ray_json_"$y"="$(dbus get ssconf_basic_v2ray_json_$nu)" && dbus remove ssconf_basic_v2ray_json_$nu
 				[ -n "$(dbus get ssconf_basic_type_$nu)" ] && dbus set ssconf_basic_type_"$y"="$(dbus get ssconf_basic_type_$nu)" && dbus remove ssconf_basic_type_$nu
-				sleep 1
+				usleep 100000
 				# change node nu
 				if [ "$nu" == "$ssconf_basic_node" ];then
 					dbus set ssconf_basic_node="$y"
+				fi
+				if [ -n "$ss_failover_s4_3" && "$nu" == "$ss_failover_s4_3" ];then
+					dbus set ss_failover_s4_3="$y"
+				fi
+				if [ -n "$ss_basic_udp_node" && "$nu" == "$ss_basic_udp_node" ];then
+					dbus set ss_basic_udp_node="$y"
 				fi
 			fi
 			let y+=1
@@ -568,6 +581,9 @@ get_type_name() {
 get_oneline_rule_now(){
 	# ss订阅
 	ssr_subscribe_link="$1"
+	LINK_FORMAT=`echo "$ssr_subscribe_link" | grep -E "^http://|^https://"`
+	[ -z "$LINK_FORMAT" ] && return 4
+	
 	echo_date "开始更新在线订阅列表..." 
 	echo_date "开始下载订阅链接到本地临时文件，请稍等..."
 	rm -rf /tmp/ssr_subscribe_file* >/dev/null 2>&1
@@ -616,6 +632,8 @@ get_oneline_rule_now(){
 	fi
 
 	if [ "$?" == "0" ];then
+		#删除上一个订阅的group信息
+		rm -rf /tmp/sub_group_info.txt
 		echo_date 下载订阅成功...
 		echo_date 开始解析节点信息...
 		decode_url_link `cat /tmp/ssr_subscribe_file.txt` > /tmp/ssr_subscribe_file_temp1.txt
@@ -639,9 +657,15 @@ get_oneline_rule_now(){
 			do
 				decode_link=$(decode_url_link $link)
 				get_remote_config $decode_link 1
-				[ "$?" == "0" ] && update_config || echo_date "检测到一个错误节点，已经跳过！"
+				if [ "$?" == "0" ];then
+					update_config
+					echo $group >> /tmp/sub_group_info.txt
+				else
+					echo_date "检测到一个错误节点，已经跳过！"
+				fi
 			done
 			# 储存对应订阅链接的group信息
+			group=`cat /tmp/sub_group_info.txt|sort -u|sed 's/$/ + /g'|sed ':a;N;$!ba;s#\n##g'|sed 's/\s+\s$//g'`
 			if [ -n "$group" ];then
 				dbus set ss_online_group_$z=$group
 				echo $group >> /tmp/group_info.txt
@@ -686,8 +710,8 @@ get_oneline_rule_now(){
 					decode_link=$(decode_url_link $link)
 					decode_link=$(echo $decode_link|jq -c .)
 					if [ -n "$decode_link" ];then
-						get_v2ray_remote_config $decode_link $v2ray_group_tmp
-						[ "$?" == "0" ] && update_v2ray_config || echo_date "检测到旧的v2ray配置，跳过！"
+						get_v2ray_remote_config "$decode_link" "$v2ray_group_tmp"
+						[ "$?" == "0" ] && update_v2ray_config || echo_date "检测到一个错误节点，已经跳过！"
 					else
 						echo_date "解析失败！！！"
 					fi
@@ -725,8 +749,9 @@ start_update(){
 	rm -rf /tmp/all_onlineservers >/dev/null 2>&1
 	rm -rf /tmp/all_group_info.txt >/dev/null 2>&1
 	rm -rf /tmp/group_info.txt >/dev/null 2>&1
-	sleep 1
-	echo_date 收集本地节点名到文件
+	rm -rf /tmp/multi_*.txt >/dev/null 2>&1
+	usleep 100000
+	echo_date "收集本地节点名到文件"
 	LOCAL_NODES=`dbus list ssconf_basic_|grep _group_|cut -d "_" -f 4|cut -d "=" -f 1|sort -n`
 	if [ -n "$LOCAL_NODES" ];then
 		for LOCAL_NODE in $LOCAL_NODES
@@ -765,21 +790,28 @@ start_update(){
 			rm -rf /tmp/ssr_subscribe_file.txt >/dev/null 2>&1 &
 			let DEL_SUBSCRIBE+=1
 			sleep 2
-			echo_date 退出订阅程序...
+			echo_date "退出订阅程序..."
 			;;
 		3)
 			echo_date "该订阅链接不包含任何节点信息！请检查你的服务商是否更换了订阅链接！"
 			rm -rf /tmp/ssr_subscribe_file.txt >/dev/null 2>&1 &
 			let DEL_SUBSCRIBE+=1
 			sleep 2
-			echo_date 退出订阅程序...
+			echo_date "退出订阅程序..."
+			;;
+		4)
+			echo_date "订阅地址错误！检测到你输入的订阅地址并不是标准网址格式！"
+			rm -rf /tmp/ssr_subscribe_file.txt >/dev/null 2>&1 &
+			let DEL_SUBSCRIBE+=1
+			sleep 2
+			echo_date "退出订阅程序..."
 			;;
 		1|*)
 			echo_date "下载订阅失败...请检查你的网络..."
 			rm -rf /tmp/ssr_subscribe_file.txt >/dev/null 2>&1 &
 			let DEL_SUBSCRIBE+=1
 			sleep 2
-			echo_date 退出订阅程序...
+			echo_date "退出订阅程序..."
 			;;
 		esac
 	done
@@ -844,7 +876,7 @@ start_update(){
 					need_adjust=1
 				fi
 			done
-			sleep 1
+			usleep 100000
 			# 再次排序
 			if [ "$need_adjust" == "1" ];then
 				echo_date 因为进行了删除订阅节点操作，需要对节点顺序进行检查！
@@ -869,7 +901,7 @@ start_update(){
 			kill $sslocal  >/dev/null 2>&1
 		fi
 	fi
-	sleep 1
+	usleep 100000
 	echo_date "一点点清理工作..."
 	rm -rf /tmp/ssr_subscribe_file.txt >/dev/null 2>&1
 	rm -rf /tmp/ssr_subscribe_file_temp1.txt >/dev/null 2>&1
@@ -877,6 +909,8 @@ start_update(){
 	rm -rf /tmp/all_onlineservers >/dev/null 2>&1
 	rm -rf /tmp/all_group_info.txt >/dev/null 2>&1
 	rm -rf /tmp/group_info.txt >/dev/null 2>&1
+	rm -rf /tmp/sub_group_info.txt >/dev/null 2>&1
+	rm -rf /tmp/multi_*.txt >/dev/null 2>&1
 	echo_date "==================================================================="
 	echo_date "所有订阅任务完成，请等待6秒，或者手动关闭本窗口！"
 	echo_date "==================================================================="
@@ -893,7 +927,7 @@ get_ss_config(){
 
 add() {
 	echo_date "==================================================================="
-	sleep 1
+	usleep 100000
 	echo_date 通过SS/SSR/v2ray链接添加节点...
 	rm -rf /tmp/ssr_subscribe_file.txt >/dev/null 2>&1
 	rm -rf /tmp/ssr_subscribe_file_temp1.txt >/dev/null 2>&1
@@ -1022,10 +1056,10 @@ case $2 in
 	sed -i '/ssnodeupdate/d' /var/spool/cron/crontabs/* >/dev/null 2>&1
 	if [ "$ss_basic_node_update" = "1" ];then
 		if [ "$ss_basic_node_update_day" = "7" ];then
-			cru a ssnodeupdate "0 $ss_basic_node_update_hr * * * /koolshare/scripts/ss_online_update.sh 3"
+			cru a ssnodeupdate "0 $ss_basic_node_update_hr * * * /koolshare/scripts/ss_online_update.sh fancyss 3"
 			echo_date "设置自动更新订阅服务在每天 $ss_basic_node_update_hr 点。" >> /tmp/upload/ss_log.txt
 		else
-			cru a ssnodeupdate "0 $ss_basic_node_update_hr * * ss_basic_node_update_day /koolshare/scripts/ss_online_update.sh 3"
+			cru a ssnodeupdate "0 $ss_basic_node_update_hr * * $ss_basic_node_update_day /koolshare/scripts/ss_online_update.sh fancyss 3"
 			echo_date "设置自动更新订阅服务在星期 $ss_basic_node_update_day 的 $ss_basic_node_update_hr 点。" >> /tmp/upload/ss_log.txt
 		fi
 	else
@@ -1053,5 +1087,8 @@ case $2 in
 	add >> /tmp/upload/ss_log.txt
 	echo XU6J03M6 >> /tmp/upload/ss_log.txt
 	unset_lock
+	;;
+5)
+	prepare
 	;;
 esac
